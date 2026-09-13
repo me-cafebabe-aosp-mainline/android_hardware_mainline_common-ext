@@ -6,10 +6,10 @@ standard Linux interfaces (IIO, input) so that the HAL works on as many devices
 as possible without device specific configuration, while still allowing
 everything to be tuned through configuration files and properties.
 
-* HAL name: `mainline`
+* HAL name: `mainline_ext`
 * Service: `vendor.sensors-mainline`
-  (`/apex/com.android.hardware.sensors/bin/hw/android.hardware.sensors-service.mainline`)
-* APEX module: `com.android.hardware.sensors.mainline`
+  (`/apex/com.android.hardware.sensors/bin/hw/android.hardware.sensors-service.mainline_ext`)
+* APEX module: `com.android.hardware.sensors.mainline_ext`
 * AIDL instance: `android.hardware.sensors.ISensors/default`
 
 ## Architecture
@@ -42,20 +42,20 @@ everything to be tuned through configuration files and properties.
   backends: `libsensors_common` (sysfs, settings, mount matrix, events, sensor
   type traits, periodic worker) and `libsensors_hwdb` (systemd sensor hwdb).
 
-| Backend | Library              | Source                                  | Documentation                        |
-|---------|----------------------|-----------------------------------------|--------------------------------------|
-| IIO     | `libsensors_iio.so`  | Linux IIO subsystem (`drivers/iio/`)     | [backends/iio/README.md](backends/iio/README.md) |
-| Input   | `libsensors_input.so`| Linux input subsystem (`drivers/input/misc/`) | [backends/input/README.md](backends/input/README.md) |
-| Mock    | `libsensors_mock.so` | Fake data, fallback only                 | [backends/mock/README.md](backends/mock/README.md) |
+| Backend | Library                  | Source                                  | Documentation                        |
+|---------|--------------------------|-----------------------------------------|--------------------------------------|
+| IIO     | `libsensors_ext_iio.so`  | Linux IIO subsystem (`drivers/iio/`)     | [backends/iio/README.md](backends/iio/README.md) |
+| Input   | `libsensors_ext_input.so`| Linux input subsystem (`drivers/input/misc/`) | [backends/input/README.md](backends/input/README.md) |
+| Mock    | `libsensors_ext_mock.so` | Fake data, fallback only                 | [backends/mock/README.md](backends/mock/README.md) |
 
 Backends are loaded in the order `iio, input, mock` by default. The mock
 backend is *fallback only*: its sensors are dropped for every type a real
 backend already provides.
 
-Out-of-tree backends (for example `libsensors_libssc` for Qualcomm Sensor
-Core sensors, see `hardware/mainline/qcom/libraries/libsensors_libssc/README.md`)
-implement the same interface, may link `libsensors_common` statically, are built against
-`//hardware/mainline/common:libsensors_mainline_headers` and can either be
+Out-of-tree backends (for example `libsensors_ext_libssc` for Qualcomm Sensor
+Core sensors, see `hardware/mainline/qcom-ext/libraries/libsensors_libssc/README.md`)
+implement the same interface, may link `libsensors_ext_common` statically, are built against
+`//hardware/mainline/common-ext:libsensors_mainline_ext_headers` and can either be
 bundled into the APEX (`include_custom_backends`) or installed in
 `/vendor/lib{,64}{/hw,}`; the APEX linker configuration permits loading from
 `/odm` and `/vendor`.
@@ -63,8 +63,8 @@ bundled into the APEX (`include_custom_backends`) or installed in
 ## Building
 
 ```makefile
-TARGET_SENSORS_HAL := mainline
-PRODUCT_PACKAGES += com.android.hardware.sensors.mainline
+TARGET_SENSORS_HAL := mainline_ext
+PRODUCT_PACKAGES += com.android.hardware.sensors.mainline_ext
 ```
 
 Soong config variables (namespace `sensors_hal_mainline`):

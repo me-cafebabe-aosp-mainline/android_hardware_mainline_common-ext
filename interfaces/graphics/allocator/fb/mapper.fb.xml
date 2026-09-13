@@ -7,7 +7,7 @@
         <name>mapper</name>
         <version>5.0</version>
         <interface>
-            <instance>fb</instance>
+            <instance>fb_ext</instance>
         </interface>
     </hal>
 </manifest>

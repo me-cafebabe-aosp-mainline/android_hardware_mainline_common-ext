@@ -1,4 +1,4 @@
-service vendor.sensors-mainline /apex/com.android.hardware.sensors/bin/hw/android.hardware.sensors-service.mainline
+service vendor.sensors-mainline /apex/com.android.hardware.sensors/bin/hw/android.hardware.sensors-service.mainline_ext
     class hal
     user system
     group system input

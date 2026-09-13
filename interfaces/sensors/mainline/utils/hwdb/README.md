@@ -18,7 +18,7 @@ Database files are read from, in order (later files override earlier ones):
 3. `/vendor/etc/hwdb.d/60-sensor.hwdb` (legacy location)
 4. `/odm/etc/hwdb.d/60-sensor.hwdb` (legacy location)
 
-Parsing is done by `libhwdb` (`hardware/mainline/common/libraries/libhwdb`),
+Parsing is done by `libhwdb_ext` (`hardware/mainline/common-ext/libraries/libhwdb`),
 which understands the text format directly (no `systemd-hwdb update` step).
 Its parser is a port of `import_file()` in systemd's `src/shared/hwdb-util.c`
 and produces identical records for all of systemd's own `hwdb.d` files,

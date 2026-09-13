@@ -15,9 +15,9 @@ It drives haptic controllers exposed via the Linux Input force-feedback (EV_FF) 
 
 ## Build System
 
-- Build target: `android.hardware.vibrator-service.mainline`
-- APEX module: `com.android.hardware.vibrator.mainline`
-- Static library: `libvibratormainlineimpl`
+- Build target: `android.hardware.vibrator-service.mainline_ext`
+- APEX module: `com.android.hardware.vibrator.mainline_ext`
+- Static library: `libvibratormainlineextimpl`
 - AIDL interface version: V4 (`android.hardware.vibrator-V4-ndk`)
 
 ## Key Design Decisions

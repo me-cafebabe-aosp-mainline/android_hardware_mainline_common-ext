@@ -7,11 +7,11 @@ code is organised and the rules to follow when changing it.
 ## What this is
 
 `android.hardware.sensors` (AIDL V3) HAL for devices running a mainline Linux
-kernel. One frontend process (`android.hardware.sensors-service.mainline`)
-loads backend shared libraries (`libsensors_<name>.so`) with `dlopen()`; each
+kernel. One frontend process (`android.hardware.sensors-service.mainline_ext`)
+loads backend shared libraries (`libsensors_ext_<name>.so`) with `dlopen()`; each
 backend bridges one Linux subsystem (IIO, input) or an external sensor service
 to the `ISensorBackend` interface. Everything ships in the vendor APEX
-`com.android.hardware.sensors.mainline` (manifest name
+`com.android.hardware.sensors.mainline_ext` (manifest name
 `com.android.hardware.sensors`, do not change it).
 
 ## Map of the code
@@ -26,25 +26,25 @@ to the `ISensorBackend` interface. Everything ships in the vendor APEX
 | `composite/CompositeSensor.h`               | `ICompositeSensor` / `CompositeSensorBase`                           |
 | `composite/DeviceOrientationSensor.*`       | `DEVICE_ORIENTATION` from accelerometer + orientation workarounds    |
 | `include/libsensors_mainline/SensorBackend.h` | **ABI** between frontend and backends (see below)                  |
-| `utils/common/`                             | `libsensors_common`: `Sysfs`, `Settings`, `MountMatrix`, `SensorEvents`, `SensorTypes`, `PeriodicWorker` |
-| `utils/hwdb/`                               | `libsensors_hwdb`: systemd `60-sensor.hwdb` lookups, DMI/SMBIOS modalias |
+| `utils/common/`                             | `libsensors_ext_common`: `Sysfs`, `Settings`, `MountMatrix`, `SensorEvents`, `SensorTypes`, `PeriodicWorker` |
+| `utils/hwdb/`                               | `libsensors_ext_hwdb`: systemd `60-sensor.hwdb` lookups, DMI/SMBIOS modalias |
 | `backends/iio/`                             | IIO backend: `IioBackend`, `IioDevice`, `IioSensor`, `IioChannel`, `IioTrigger`, `IioTypes` |
 | `backends/input/`                           | Input backend: `InputBackend`, `InputDevice`                          |
 | `backends/mock/`                            | Mock backend (fallback only)                                          |
 
-Build modules: `android.hardware.sensors-service.mainline` (binary),
-`libsensors_mainline_frontend` (static), `libsensors_mainline_headers`
-(header lib, public), `libsensors_common`, `libsensors_hwdb` (static),
-`libsensors_iio`, `libsensors_input`, `libsensors_mock` (shared),
-`com.android.hardware.sensors.mainline` (APEX). External dependencies:
-`libhwdb` and `libsmbios_parser` from `hardware/mainline/common/libraries/`.
+Build modules: `android.hardware.sensors-service.mainline_ext` (binary),
+`libsensors_mainline_ext_frontend` (static), `libsensors_mainline_ext_headers`
+(header lib, public), `libsensors_ext_common`, `libsensors_ext_hwdb` (static),
+`libsensors_ext_iio`, `libsensors_ext_input`, `libsensors_ext_mock` (shared),
+`com.android.hardware.sensors.mainline_ext` (APEX). External dependencies:
+`libhwdb_ext` and `libsmbios_parser_ext` from `hardware/mainline/common-ext/libraries/`.
 
 ## Hard rules
 
 * **Do not change the `ISensorBackend` virtual method layout** (order, number,
   signatures) in `SensorBackend.h`: out-of-tree backends such as
-  `hardware/mainline/qcom/libraries/libsensors_libssc` are built against it
-  (that backend also links `libsensors_common`, so keep that library's API
+  `hardware/mainline/qcom-ext/libraries/libsensors_ext_libssc` are built against it
+  (that backend also links `libsensors_ext_common`, so keep that library's API
   stable or update the backend along with it).
   Add new functionality through new optional exported C symbols (see
   `GetSensorBackendFlags`) and bump `kSensorBackendInterfaceVersion` only for
@@ -72,7 +72,7 @@ Build modules: `android.hardware.sensors-service.mainline` (binary),
 * Run clang-format before committing:
   `prebuilts/clang/host/linux-x86/clang-r584948b/bin/clang-format -i --style=file <files>`
   (the repository `.clang-format` is `build/soong/scripts/system-clang-format`).
-* Commit messages start with `mainline/common: interfaces/sensors/mainline: `
+* Commit messages start with `mainline/common-ext: interfaces/sensors/mainline: `
   and end with `Assisted-by: <Agent>/<Model ID>`.
 * Do not build or run tests yourself; the maintainer compiles and reports.
 
@@ -127,4 +127,4 @@ Build modules: `android.hardware.sensors-service.mainline` (binary),
   (bmi160, st_lsm6dsx, ak8975, yas530, ltr501, ltrf216a, stk3310, HID sensors),
   `kernel/mainline/msm89x7-mainline` (qcom_smgr)
 * iio-sensor-proxy (userspace reference): `external/mainline-hw-deps/iio-sensor-proxy`
-* Previous implementation (archived): `../mainline_orig`
+* Previous implementation (archived): `hardware/mainline/common/interfaces/sensors/mainline_orig`

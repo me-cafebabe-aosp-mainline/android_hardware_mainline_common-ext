@@ -107,12 +107,12 @@ This HAL implements version 4 of the `android.hardware.vibrator` AIDL interface.
 The HAL is built as part of the LineageOS/AOSP build system:
 
 ```
-m com.android.hardware.vibrator.mainline
+m com.android.hardware.vibrator.mainline_ext
 ```
 
 ## Deployment
 
-The HAL runs inside the `com.android.hardware.vibrator.mainline` APEX module.
+The HAL runs inside the `com.android.hardware.vibrator.mainline_ext` APEX module.
 The APEX manifest name is `com.android.hardware.vibrator` (without `.mainline` suffix)
 to support Multi-install APEX.
 

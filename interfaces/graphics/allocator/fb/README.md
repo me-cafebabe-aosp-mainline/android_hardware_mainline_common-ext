@@ -9,17 +9,17 @@ service. It is not a GPU allocator and does not produce dma-bufs.
 
 Install these standalone modules together:
 
-- `android.hardware.graphics.allocator-service.fb`
-- `mapper.fb`
-- `android.hardware.graphics.composer3-service.fb`
+- `android.hardware.graphics.allocator-service.fb_ext`
+- `mapper.fb_ext`
+- `android.hardware.graphics.composer3-service.fb_ext`
 
 Alternatively install the non-updatable, SoC-specific vendor-bootstrap APEX
-`com.android.hardware.graphics.allocator.fb`. For APEX products, set
+`com.android.hardware.graphics.allocator.fb_ext`. For APEX products, set
 `fb_graphics.include_init_rc=false` and
 `fb_graphics.include_vintf_fragments=false` to avoid duplicate standalone init
 and VINTF installation. The APEX uses the platform hardware key and certificate
 and contains both services, the mapper, all VINTF fragments, and generated init
-scripts. Its linker configuration exposes `mapper.fb` from the APEX namespace
+scripts. Its linker configuration exposes `mapper.fb_ext` from the APEX namespace
 to Stable-C mapper clients. A product must install exactly one
 allocator/mapper/composer stack and
 must not install both this APEX and another graphics HAL APEX.
@@ -28,7 +28,7 @@ SELinux policy outside this directory must allow the allocator to create and
 map memfds, SurfaceFlinger and graphics clients to use the mapper SP-HAL, and
 the composer domain to open, ioctl, and map the selected framebuffer node.
 Device-node labels and allow rules are board-specific and are intentionally not
-provided here. The product sepolicy must also map `mapper/fb` to
+provided here. The product sepolicy must also map `mapper/fb_ext` to
 `u:object_r:hal_graphics_mapper_service:s0` in `service_contexts`.
 
 ## Properties

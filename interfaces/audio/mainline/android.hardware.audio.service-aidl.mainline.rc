@@ -1,4 +1,4 @@
-service vendor.audio-hal-aidl-mainline /apex/com.android.hardware.audio/bin/hw/android.hardware.audio.service-aidl.mainline
+service vendor.audio-hal-aidl-mainline /apex/com.android.hardware.audio/bin/hw/android.hardware.audio.service-aidl.mainline_ext
     class hal
     user audioserver
     # audio: /dev/snd/*; media: /data/misc/media; the rest matches the example HAL

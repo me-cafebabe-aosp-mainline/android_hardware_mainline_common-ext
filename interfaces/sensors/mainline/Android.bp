@@ -19,7 +19,7 @@
 //                                       type the HAL can provide.
 
 // Interface between the frontend and the backends. Out-of-tree backends depend
-// on this module as "//hardware/mainline/common:libsensors_mainline_headers".
+// on this module as "//hardware/mainline/common-ext:libsensors_mainline_ext_headers".
 cc_library_headers {
     name: "libsensors_mainline_ext_headers",
     vendor: true,

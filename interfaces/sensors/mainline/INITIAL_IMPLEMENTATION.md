@@ -52,7 +52,7 @@ VTS module is in `vts` subdir there.
 ### HAL implementations
 
 - **Example AIDL Sensors HAL**: `hardware/interfaces/sensors/aidl/default`. Check it out for standard example AIDL HAL implementation.
-- **The previous faulty implementation of this HAL**: `../mainline_orig` relative to here, and `hardware/mainline/qcom/libraries/libsensors_libssc` for external libssc backend, and `external/mainline-hw-deps/*` for dependencies of the external libssc backend, and `hardware/mainline/common/libraries/` for its `libhwdb` and `smbios-parser` dependencies.
+- **The previous faulty implementation of this HAL**: `hardware/mainline/common/interfaces/sensors/mainline_orig`, and `hardware/mainline/qcom/libraries/libsensors_libssc` for external libssc backend, and `external/mainline-hw-deps/*` for dependencies of the external libssc backend, and `hardware/mainline/common-ext/libraries/` for its `libhwdb` and `smbios-parser` dependencies.
 
 ### Linux kernel
 
@@ -147,7 +147,7 @@ either read these from configuration files, or from android properties.
 ### Directory structure
 
 The root directory of the HAL implementation should be
-`hardware/mainline/common/interfaces/sensors/mainline`
+`hardware/mainline/common-ext/interfaces/sensors/mainline`
 relative to AOSP root directory.
 
 The frontend shall be at root of the HAL directory.

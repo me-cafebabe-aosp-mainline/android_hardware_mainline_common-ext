@@ -6,7 +6,7 @@ the original requirements. This file is about the code.
 ## Ground rules
 
 * C++ only, Google C++ style with the repository's `.clang-format`
-  (`hardware/mainline/common/.clang-format`, 4 spaces, 100 columns). Run
+  (`hardware/mainline/common-ext/.clang-format`, 4 spaces, 100 columns). Run
   `prebuilts/clang/host/linux-x86/clang-r*/bin/clang-format -i` on every file
   you touch. Our own code uses Google naming (`CamelCase()` functions,
   `snake_case_` members, `kConstant`); overrides of AIDL / example HAL methods
@@ -16,7 +16,7 @@ the original requirements. This file is about the code.
 * Use `libbase` (`android-base/*.h`) for logging, properties, strings. Log
   tags start with `MainlineAudio_`.
 * Do not compile or deploy yourself; the human does and reports back.
-* Every commit: subject `mainline/common: interfaces/audio/mainline: ...`,
+* Every commit: subject `mainline/common-ext: interfaces/audio/mainline: ...`,
   detailed body, trailer `Assisted-by: <Agent>/<Model ID>`.
 * Keep `README.md` (properties table, device model) in sync with the code.
 

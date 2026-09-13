@@ -7,7 +7,7 @@ client target through DRM KMS.
 
 ## Integration
 
-Add `android.hardware.graphics.composer3-service.drmfb` to the product packages
+Add `android.hardware.graphics.composer3-service.drmfb_ext` to the product packages
 and include its VINTF fragment. By default the service enumerates DRM primary
 nodes with libdrm and deterministically prefers a KMS card with a connected
 internal display (including virtual-machine connectors), followed by any
@@ -18,8 +18,8 @@ access and prefers atomic modesetting with a primary plane. Drivers without
 atomic KMS use a legacy CRTC/page-flip backend.
 
 The service can be installed directly with
-`android.hardware.graphics.composer3-service.drmfb`, or packaged in the vendor
-APEX module `com.android.hardware.graphics.composer.drmfb`. APEX products should
+`android.hardware.graphics.composer3-service.drmfb_ext`, or packaged in the vendor
+APEX module `com.android.hardware.graphics.composer.drmfb_ext`. APEX products should
 set `drmfb_composer.include_init_rc=false` and
 `drmfb_composer.include_vintf_fragments=false` so the standalone service does
 not install duplicate init or VINTF declarations. The APEX uses the platform

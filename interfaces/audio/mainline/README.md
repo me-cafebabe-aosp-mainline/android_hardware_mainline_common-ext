@@ -19,9 +19,9 @@ below.
 
 | Item                   | Value                                                       |
 |------------------------|-------------------------------------------------------------|
-| APEX module            | `com.android.hardware.audio.mainline`                       |
+| APEX module            | `com.android.hardware.audio.mainline_ext`                   |
 | APEX manifest name     | `com.android.hardware.audio` (multi-install with the example) |
-| Core HAL binary        | `/apex/com.android.hardware.audio/bin/hw/android.hardware.audio.service-aidl.mainline` |
+| Core HAL binary        | `/apex/com.android.hardware.audio/bin/hw/android.hardware.audio.service-aidl.mainline_ext` |
 | Init services          | `vendor.audio-hal-aidl-mainline`, `vendor.audio-effect-hal-aidl-mainline` (only with `internal_effects`) |
 | AIDL instances         | `IConfig/default`, `IModule/default`, `IModule/r_submix`, `IModule/bluetooth` (optional), `IFactory/default` (only with `internal_effects`) |
 | Log tags               | `MainlineAudio_*`                                           |
@@ -29,14 +29,14 @@ below.
 ## Product integration
 
 ```makefile
-# The HAL lives in the hardware/mainline/common Soong namespace.
-PRODUCT_SOONG_NAMESPACES += hardware/mainline/common
+# The HAL lives in the hardware/mainline/common-ext Soong namespace.
+PRODUCT_SOONG_NAMESPACES += hardware/mainline/common-ext
 
-PRODUCT_PACKAGES += com.android.hardware.audio.mainline
+PRODUCT_PACKAGES += com.android.hardware.audio.mainline_ext
 
 # An effect HAL, since the APEX does not carry one by default. Either the
 # wrapper for the device's legacy effect libraries ...
-PRODUCT_PACKAGES += android.hardware.audio.effect.service-aidl.legacy
+PRODUCT_PACKAGES += android.hardware.audio.effect.service-aidl.legacy_ext
 # ... or the bundled example one, by setting internal_effects below.
 
 # UCM profiles: install everything (generic images) ...

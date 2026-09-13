@@ -15,7 +15,7 @@ as the mainline audio HAL next door.
 
 | Item              | Value                                                        |
 |-------------------|--------------------------------------------------------------|
-| Binary            | `/vendor/bin/hw/android.hardware.audio.effect.service-aidl.legacy` |
+| Binary            | `/vendor/bin/hw/android.hardware.audio.effect.service-aidl.legacy_ext` |
 | Init service      | `vendor.audio-effect-hal-aidl-legacy`                        |
 | AIDL instance     | `android.hardware.audio.effect.IFactory/default`             |
 | Configuration     | `/odm/etc`, `/vendor/etc` or `/system/etc` `audio_effects.xml` (or `audio_effects_config.xml`) |
@@ -28,8 +28,8 @@ the vendor linker namespace, which a vendor APEX cannot link to wholesale.
 ## Product integration
 
 ```makefile
-PRODUCT_SOONG_NAMESPACES += hardware/mainline/common
-PRODUCT_PACKAGES += android.hardware.audio.effect.service-aidl.legacy
+PRODUCT_SOONG_NAMESPACES += hardware/mainline/common-ext
+PRODUCT_PACKAGES += android.hardware.audio.effect.service-aidl.legacy_ext
 
 # The vendor's existing effect configuration and libraries, exactly as for
 # the legacy / HIDL effect HAL:

@@ -6,14 +6,14 @@ the two.
 
 ## Rules
 
-* C++, Google style with `hardware/mainline/common/.clang-format`; run
+* C++, Google style with `hardware/mainline/common-ext/.clang-format`; run
   `clang-format -i` on touched files. Our own identifiers use Google naming
   (`CamelCase()`, `snake_case_`), overrides of AIDL / example HAL methods keep
   their `camelCase` names.
 * No `try` / `catch`. Failures are `ndk::ScopedAStatus`, `RetCode`,
   `std::optional` or legacy `int32_t` statuses.
 * Do not compile or deploy; the human does.
-* Commit subject `mainline/common: interfaces/audio/effect/legacy: ...`,
+* Commit subject `mainline/common-ext: interfaces/audio/effect/legacy: ...`,
   detailed body, trailer `Assisted-by: <Agent>/<Model ID>`.
 
 ## Map
