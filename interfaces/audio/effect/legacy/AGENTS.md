@@ -82,3 +82,10 @@ params/*Translator*.cpp     One family per file (Equalizer, Strength = BassBoost
 2. Declare its factory function in `params/Translators.h`, wire it in
    `CreateTranslator()` (`params/ParameterTranslator.cpp`), add the file to
    `Android.bp`, update the support table in `README.md`.
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.

@@ -53,3 +53,10 @@ Also supports: `drv260x`, `da7280`, and other drivers exposing EV_FF with FF_RUM
 
 Do NOT try to compile. The user will compile and report issues.
 Run lint/format checks if requested.
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.

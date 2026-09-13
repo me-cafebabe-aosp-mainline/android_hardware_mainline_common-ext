@@ -157,3 +157,10 @@ adb shell dumpsys android.hardware.audio.core.IModule/default | head -80
 adb logcat -s MainlineAudio_Inventory MainlineAudio_Ucm
 adb shell cat /proc/asound/cards
 ```
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.

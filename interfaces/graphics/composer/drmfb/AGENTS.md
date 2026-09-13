@@ -76,3 +76,10 @@ paths and explicitly prohibits local builds and tests.
 
 Keep changes minimal and Google C++ style. Do not use exceptions or catch
 blocks. Update `README.md` when changing supported behavior.
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.

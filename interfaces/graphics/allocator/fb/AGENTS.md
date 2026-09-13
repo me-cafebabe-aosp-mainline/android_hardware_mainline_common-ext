@@ -62,3 +62,10 @@ client-composition-only Composer3 V5 stack for legacy fbdev systems.
 
 The vendor APEX and standalone modules are mutually exclusive. Board SELinux
 policy and framebuffer device labels live outside this directory.
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.

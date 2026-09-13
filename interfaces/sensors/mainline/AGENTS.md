@@ -128,3 +128,10 @@ Build modules: `android.hardware.sensors-service.mainline_ext` (binary),
   `kernel/mainline/msm89x7-mainline` (qcom_smgr)
 * iio-sensor-proxy (userspace reference): `external/mainline-hw-deps/iio-sensor-proxy`
 * Previous implementation (archived): `hardware/mainline/common/interfaces/sensors/mainline_orig`
+
+## Note about naming convention
+
+This is a component imported from the original repository, and we should avoid
+conflicts with the one in the original repository.
+
+For details, check out `README.md` at repository root.
