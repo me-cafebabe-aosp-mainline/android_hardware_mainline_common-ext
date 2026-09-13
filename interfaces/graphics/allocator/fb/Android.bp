@@ -8,12 +8,12 @@ package {
 }
 
 filegroup {
-    name: "fb_graphics_buffer_sources",
+    name: "fb_graphics_ext_buffer_sources",
     srcs: ["Buffer.cpp"],
 }
 
 filegroup {
-    name: "fb_graphics_allocator_sources",
+    name: "fb_graphics_ext_allocator_sources",
     srcs: [
         "Allocator.cpp",
         "AllocatorService.cpp",
@@ -21,7 +21,7 @@ filegroup {
 }
 
 filegroup {
-    name: "fb_graphics_composer_sources",
+    name: "fb_graphics_ext_composer_sources",
     srcs: [
         "Composer.cpp",
         "ComposerClient.cpp",
@@ -31,7 +31,7 @@ filegroup {
 }
 
 cc_defaults {
-    name: "fb_graphics_defaults",
+    name: "fb_graphics_ext_defaults",
     cflags: [
         "-Wall",
         "-Wextra",
@@ -42,9 +42,9 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "fb_graphics_buffer_defaults",
-    defaults: ["fb_graphics_defaults"],
-    srcs: [":fb_graphics_buffer_sources"],
+    name: "fb_graphics_ext_buffer_defaults",
+    defaults: ["fb_graphics_ext_defaults"],
+    srcs: [":fb_graphics_ext_buffer_sources"],
     shared_libs: [
         "android.hardware.graphics.allocator-V3-ndk",
         "android.hardware.graphics.common-V7-ndk",
@@ -58,9 +58,9 @@ cc_defaults {
 }
 
 cc_binary {
-    name: "android.hardware.graphics.allocator-service.fb",
-    defaults: ["fb_graphics_buffer_defaults"],
-    srcs: [":fb_graphics_allocator_sources"],
+    name: "android.hardware.graphics.allocator-service.fb_ext",
+    defaults: ["fb_graphics_ext_buffer_defaults"],
+    srcs: [":fb_graphics_ext_allocator_sources"],
     relative_install_path: "hw",
     init_rc: select(soong_config_variable("fb_graphics", "include_init_rc"), {
         false: [],
@@ -78,8 +78,8 @@ cc_binary {
 }
 
 cc_library_shared {
-    name: "mapper.fb",
-    defaults: ["fb_graphics_buffer_defaults"],
+    name: "mapper.fb_ext",
+    defaults: ["fb_graphics_ext_buffer_defaults"],
     srcs: ["Mapper.cpp"],
     compile_multilib: "both",
     vintf_fragments: select(soong_config_variable("fb_graphics", "include_vintf_fragments"), {
@@ -95,9 +95,9 @@ cc_library_shared {
 }
 
 cc_binary {
-    name: "android.hardware.graphics.composer3-service.fb",
-    defaults: ["fb_graphics_buffer_defaults"],
-    srcs: [":fb_graphics_composer_sources"],
+    name: "android.hardware.graphics.composer3-service.fb_ext",
+    defaults: ["fb_graphics_ext_buffer_defaults"],
+    srcs: [":fb_graphics_ext_composer_sources"],
     relative_install_path: "hw",
     init_rc: select(soong_config_variable("fb_graphics", "include_init_rc"), {
         false: [],
@@ -118,7 +118,7 @@ cc_binary {
 }
 
 prebuilt_etc {
-    name: "fb_allocator_apex_vintf",
+    name: "fb_allocator_ext_apex_vintf",
     src: "android.hardware.graphics.allocator-service.fb.xml",
     filename_from_src: true,
     sub_dir: "vintf",
@@ -127,7 +127,7 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
-    name: "fb_mapper_apex_vintf",
+    name: "fb_mapper_ext_apex_vintf",
     src: "mapper.fb.xml",
     filename_from_src: true,
     sub_dir: "vintf",
@@ -136,7 +136,7 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
-    name: "fb_composer_apex_vintf",
+    name: "fb_composer_ext_apex_vintf",
     src: "android.hardware.graphics.composer3-service.fb.xml",
     filename_from_src: true,
     sub_dir: "vintf",
@@ -145,45 +145,45 @@ prebuilt_etc {
 }
 
 genrule {
-    name: "gen_fb_allocator_apex_init_rc",
+    name: "gen_fb_allocator_ext_apex_init_rc",
     srcs: ["android.hardware.graphics.allocator-service.fb.rc"],
     out: ["android.hardware.graphics.allocator-service.fb.apex.rc"],
     cmd: "sed -e 's%/vendor/bin/%/apex/com.android.hardware.graphics.allocator/bin/%' $(in) > $(out)",
 }
 
 genrule {
-    name: "gen_fb_composer_apex_init_rc",
+    name: "gen_fb_composer_ext_apex_init_rc",
     srcs: ["android.hardware.graphics.composer3-service.fb.rc"],
     out: ["android.hardware.graphics.composer3-service.fb.apex.rc"],
     cmd: "sed -e 's%/vendor/bin/%/apex/com.android.hardware.graphics.allocator/bin/%' $(in) > $(out)",
 }
 
 prebuilt_etc {
-    name: "fb_allocator_apex_init_rc",
-    src: ":gen_fb_allocator_apex_init_rc",
+    name: "fb_allocator_ext_apex_init_rc",
+    src: ":gen_fb_allocator_ext_apex_init_rc",
     filename_from_src: true,
     vendor: true,
 }
 
 prebuilt_etc {
-    name: "fb_composer_apex_init_rc",
-    src: ":gen_fb_composer_apex_init_rc",
+    name: "fb_composer_ext_apex_init_rc",
+    src: ":gen_fb_composer_ext_apex_init_rc",
     filename_from_src: true,
     vendor: true,
 }
 
 filegroup {
-    name: "fb_graphics_apex_file_contexts",
+    name: "fb_graphics_ext_apex_file_contexts",
     srcs: ["fb-apex-file-contexts"],
 }
 
 filegroup {
-    name: "fb_graphics_apex_manifest",
+    name: "fb_graphics_ext_apex_manifest",
     srcs: ["fb-apex-manifest.json"],
 }
 
 soong_config_module_type {
-    name: "fb_apex",
+    name: "fb_ext_apex",
     module_type: "apex",
     config_namespace: "fb_graphics",
     bool_variables: [
@@ -194,34 +194,34 @@ soong_config_module_type {
     ],
 }
 
-fb_apex {
-    name: "com.android.hardware.graphics.allocator.fb",
+fb_ext_apex {
+    name: "com.android.hardware.graphics.allocator.fb_ext",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
-    file_contexts: ":fb_graphics_apex_file_contexts",
-    manifest: ":fb_graphics_apex_manifest",
+    file_contexts: ":fb_graphics_ext_apex_file_contexts",
+    manifest: ":fb_graphics_ext_apex_manifest",
     updatable: false,
     vendor: true,
 
     binaries: [
-        "android.hardware.graphics.allocator-service.fb",
-        "android.hardware.graphics.composer3-service.fb",
+        "android.hardware.graphics.allocator-service.fb_ext",
+        "android.hardware.graphics.composer3-service.fb_ext",
     ],
     prebuilts: [
-        "fb_allocator_apex_init_rc",
-        "fb_allocator_apex_vintf",
-        "fb_composer_apex_init_rc",
-        "fb_composer_apex_vintf",
+        "fb_allocator_ext_apex_init_rc",
+        "fb_allocator_ext_apex_vintf",
+        "fb_composer_ext_apex_init_rc",
+        "fb_composer_ext_apex_vintf",
     ],
     overrides: [
-        "android.hardware.graphics.allocator-service.fb",
-        "android.hardware.graphics.composer3-service.fb",
+        "android.hardware.graphics.allocator-service.fb_ext",
+        "android.hardware.graphics.composer3-service.fb_ext",
     ],
 
     soong_config_variables: {
         RELEASE_SM_OPEN_DECLARED_PASSTHROUGH_HAL: {
             defaults: [
-                "com.android.hardware.graphics.allocator.fb-mapper-defaults",
+                "com.android.hardware.graphics.allocator.fb_ext-mapper-defaults",
             ],
             conditions_default: {},
         },
@@ -229,23 +229,23 @@ fb_apex {
 }
 
 apex_defaults {
-    name: "com.android.hardware.graphics.allocator.fb-mapper-defaults",
+    name: "com.android.hardware.graphics.allocator.fb_ext-mapper-defaults",
 
     // for app_process32 apps
     compile_multilib: "both",
 
-    native_shared_libs: ["mapper.fb"],
+    native_shared_libs: ["mapper.fb_ext"],
     prebuilts: [
-        "fb_mapper_apex_vintf",
-        "fb_allocator_apex_linker_config",
+        "fb_mapper_ext_apex_vintf",
+        "fb_allocator_ext_apex_linker_config",
     ],
     overrides: [
-        "mapper.fb",
+        "mapper.fb_ext",
     ],
 }
 
 linker_config {
-    name: "fb_allocator_apex_linker_config",
+    name: "fb_allocator_ext_apex_linker_config",
     src: "fb-apex-linkerconfig.json",
     installable: false,
 }

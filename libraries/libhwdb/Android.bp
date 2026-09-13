@@ -4,7 +4,7 @@
 //
 
 cc_library {
-    name: "libhwdb",
+    name: "libhwdb_ext",
     vendor_available: true,
     srcs: [
         "Hwdb.cpp",

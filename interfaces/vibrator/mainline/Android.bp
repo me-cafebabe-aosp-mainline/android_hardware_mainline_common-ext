@@ -4,7 +4,7 @@
 //
 
 cc_library_static {
-    name: "libvibratormainlineimpl",
+    name: "libvibratormainlineextimpl",
     vendor: true,
     shared_libs: [
         "android.hardware.vibrator-V4-ndk",
@@ -25,20 +25,20 @@ cc_library_static {
 }
 
 prebuilt_etc {
-    name: "vibrator-mainline.rc",
+    name: "vibrator-mainline_ext.rc",
     src: "vibrator-mainline.rc",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "android.hardware.vibrator.mainline.xml",
+    name: "android.hardware.vibrator.mainline_ext.xml",
     src: "android.hardware.vibrator.mainline.xml",
     sub_dir: "vintf",
     installable: false,
 }
 
 cc_binary {
-    name: "android.hardware.vibrator-service.mainline",
+    name: "android.hardware.vibrator-service.mainline_ext",
     relative_install_path: "hw",
     vendor: true,
     shared_libs: [
@@ -48,7 +48,7 @@ cc_binary {
         "liblog",
     ],
     static_libs: [
-        "libvibratormainlineimpl",
+        "libvibratormainlineextimpl",
     ],
     srcs: ["main.cpp"],
     installable: false,

@@ -20,7 +20,7 @@
 //                             may be installed on a device.
 
 cc_defaults {
-    name: "android.hardware.audio.service-aidl.mainline_defaults",
+    name: "android.hardware.audio.service-aidl.mainline_ext_defaults",
     vendor: true,
     defaults: [
         // Shared library set and BACKEND_NDK of the example HAL.
@@ -42,9 +42,9 @@ cc_defaults {
 }
 
 cc_binary {
-    name: "android.hardware.audio.service-aidl.mainline",
+    name: "android.hardware.audio.service-aidl.mainline_ext",
     relative_install_path: "hw",
-    defaults: ["android.hardware.audio.service-aidl.mainline_defaults"],
+    defaults: ["android.hardware.audio.service-aidl.mainline_ext_defaults"],
     srcs: [
         "main.cpp",
         "MainlineConfig.cpp",
@@ -90,33 +90,33 @@ cc_binary {
 // --- Files installed into the APEX ------------------------------------------
 
 prebuilt_etc {
-    name: "android.hardware.audio.service-aidl.mainline.rc",
+    name: "android.hardware.audio.service-aidl.mainline_ext.rc",
     src: "android.hardware.audio.service-aidl.mainline.rc",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "android.hardware.audio.service-aidl.mainline.xml",
+    name: "android.hardware.audio.service-aidl.mainline_ext.xml",
     src: "android.hardware.audio.service-aidl.mainline.xml",
     sub_dir: "vintf",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "android.hardware.audio.service-aidl.mainline-bluetooth.xml",
+    name: "android.hardware.audio.service-aidl.mainline_ext-bluetooth.xml",
     src: "android.hardware.audio.service-aidl.mainline-bluetooth.xml",
     sub_dir: "vintf",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "android.hardware.audio.service-aidl.mainline-effects.rc",
+    name: "android.hardware.audio.service-aidl.mainline_ext-effects.rc",
     src: "android.hardware.audio.service-aidl.mainline-effects.rc",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "android.hardware.audio.service-aidl.mainline-effects.xml",
+    name: "android.hardware.audio.service-aidl.mainline_ext-effects.xml",
     src: "android.hardware.audio.service-aidl.mainline-effects.xml",
     sub_dir: "vintf",
     installable: false,
@@ -125,7 +125,7 @@ prebuilt_etc {
 // Effect configuration read by the example effect service from
 // /apex/<name>/etc/audio_effects_config.xml.
 prebuilt_etc {
-    name: "audio_effects_config.mainline.xml",
+    name: "audio_effects_config.mainline_ext.xml",
     filename: "audio_effects_config.xml",
     src: "config/audio_effects_config.xml",
     installable: false,
@@ -135,28 +135,28 @@ prebuilt_etc {
 // A copy of the AOSP phone example; a device may override it by placing an
 // audio_policy_engine_configuration.xml into /vendor/etc.
 prebuilt_etc {
-    name: "audio_policy_engine_configuration.mainline.xml",
+    name: "audio_policy_engine_configuration.mainline_ext.xml",
     filename: "audio_policy_engine_configuration.xml",
     src: "config/audio_policy_engine_configuration.xml",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "audio_policy_engine_product_strategies.mainline.xml",
+    name: "audio_policy_engine_product_strategies.mainline_ext.xml",
     filename: "audio_policy_engine_product_strategies.xml",
     src: "config/audio_policy_engine_product_strategies.xml",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "audio_policy_engine_stream_volumes.mainline.xml",
+    name: "audio_policy_engine_stream_volumes.mainline_ext.xml",
     filename: "audio_policy_engine_stream_volumes.xml",
     src: "config/audio_policy_engine_stream_volumes.xml",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "audio_policy_engine_default_stream_volumes.mainline.xml",
+    name: "audio_policy_engine_default_stream_volumes.mainline_ext.xml",
     filename: "audio_policy_engine_default_stream_volumes.xml",
     src: "config/audio_policy_engine_default_stream_volumes.xml",
     installable: false,
@@ -167,7 +167,7 @@ prebuilt_etc {
 // The manifest keeps the name "com.android.hardware.audio" so that this APEX
 // can be multi-installed next to the example one; apexd activates one of them.
 apex {
-    name: "com.android.hardware.audio.mainline",
+    name: "com.android.hardware.audio.mainline_ext",
     manifest: "apex_manifest.json",
     file_contexts: "file_contexts",
     key: "com.android.hardware.key",
@@ -176,7 +176,7 @@ apex {
     vendor: true,
 
     binaries: [
-        "android.hardware.audio.service-aidl.mainline",
+        "android.hardware.audio.service-aidl.mainline_ext",
     ] + select(soong_config_variable("mainline_audio", "internal_effects"), {
         true: [
             // Effects: the unmodified example effect service with its plug-ins.
@@ -211,17 +211,17 @@ apex {
         default: [],
     }),
     prebuilts: [
-        "android.hardware.audio.service-aidl.mainline.rc",
-        "android.hardware.audio.service-aidl.mainline.xml",
-        "audio_policy_engine_configuration.mainline.xml",
-        "audio_policy_engine_product_strategies.mainline.xml",
-        "audio_policy_engine_stream_volumes.mainline.xml",
-        "audio_policy_engine_default_stream_volumes.mainline.xml",
+        "android.hardware.audio.service-aidl.mainline_ext.rc",
+        "android.hardware.audio.service-aidl.mainline_ext.xml",
+        "audio_policy_engine_configuration.mainline_ext.xml",
+        "audio_policy_engine_product_strategies.mainline_ext.xml",
+        "audio_policy_engine_stream_volumes.mainline_ext.xml",
+        "audio_policy_engine_default_stream_volumes.mainline_ext.xml",
     ] + select(soong_config_variable("mainline_audio", "internal_effects"), {
         true: [
-            "android.hardware.audio.service-aidl.mainline-effects.rc",
-            "android.hardware.audio.service-aidl.mainline-effects.xml",
-            "audio_effects_config.mainline.xml",
+            "android.hardware.audio.service-aidl.mainline_ext-effects.rc",
+            "android.hardware.audio.service-aidl.mainline_ext-effects.xml",
+            "audio_effects_config.mainline_ext.xml",
             "audio_eraser_classifier_model",
             "audio_eraser_separator_model",
         ],
@@ -229,7 +229,7 @@ apex {
     }) + select(soong_config_variable("mainline_audio", "disable_bluetooth"), {
         true: [],
         default: [
-            "android.hardware.audio.service-aidl.mainline-bluetooth.xml",
+            "android.hardware.audio.service-aidl.mainline_ext-bluetooth.xml",
             "android.hardware.bluetooth.audio.xml",
         ],
     }),

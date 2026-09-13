@@ -4,7 +4,7 @@
 //
 
 apex {
-    name: "com.android.hardware.vibrator.mainline",
+    name: "com.android.hardware.vibrator.mainline_ext",
     manifest: "apex_manifest.json",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
@@ -13,10 +13,10 @@ apex {
     vendor: true,
 
     binaries: [
-        "android.hardware.vibrator-service.mainline",
+        "android.hardware.vibrator-service.mainline_ext",
     ],
     prebuilts: [
-        "vibrator-mainline.rc",
-        "android.hardware.vibrator.mainline.xml",
+        "vibrator-mainline_ext.rc",
+        "android.hardware.vibrator.mainline_ext.xml",
     ],
 }

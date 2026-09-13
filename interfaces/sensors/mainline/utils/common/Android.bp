@@ -7,7 +7,7 @@
 // Linked statically so that out-of-tree backends living in /vendor do not
 // depend on a library inside the APEX.
 cc_library_static {
-    name: "libsensors_common",
+    name: "libsensors_ext_common",
     vendor: true,
     srcs: [
         "MountMatrix.cpp",

@@ -21,7 +21,7 @@
 // Interface between the frontend and the backends. Out-of-tree backends depend
 // on this module as "//hardware/mainline/common:libsensors_mainline_headers".
 cc_library_headers {
-    name: "libsensors_mainline_headers",
+    name: "libsensors_mainline_ext_headers",
     vendor: true,
     export_include_dirs: ["include"],
     shared_libs: [
@@ -34,7 +34,7 @@ cc_library_headers {
 }
 
 cc_defaults {
-    name: "libsensors_mainline_frontend_defaults",
+    name: "libsensors_mainline_ext_frontend_defaults",
     vendor: true,
     cflags: [
         "-Wall",
@@ -56,16 +56,16 @@ cc_defaults {
     static_libs: [
         "android.system.suspend-V1-ndk",
         "libpower",
-        "libsensors_common",
+        "libsensors_ext_common",
     ],
     header_libs: [
-        "libsensors_mainline_headers",
+        "libsensors_mainline_ext_headers",
     ],
 }
 
 cc_library_static {
-    name: "libsensors_mainline_frontend",
-    defaults: ["libsensors_mainline_frontend_defaults"],
+    name: "libsensors_mainline_ext_frontend",
+    defaults: ["libsensors_mainline_ext_frontend_defaults"],
     srcs: [
         "BackendLoader.cpp",
         "EventDispatcher.cpp",
@@ -82,39 +82,39 @@ cc_library_static {
 }
 
 cc_binary {
-    name: "android.hardware.sensors-service.mainline",
-    defaults: ["libsensors_mainline_frontend_defaults"],
+    name: "android.hardware.sensors-service.mainline_ext",
+    defaults: ["libsensors_mainline_ext_frontend_defaults"],
     relative_install_path: "hw",
     installable: false, // installed through the APEX
     srcs: ["main.cpp"],
     static_libs: [
-        "libsensors_mainline_frontend",
+        "libsensors_mainline_ext_frontend",
     ],
     visibility: [":__subpackages__"],
 }
 
 linker_config {
-    name: "com.android.hardware.sensors.mainline-linker-config",
+    name: "com.android.hardware.sensors.mainline_ext-linker-config",
     src: "apex_linkerconfig.json",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "sensors-mainline.rc",
+    name: "sensors-mainline_ext.rc",
     vendor: true,
     src: "sensors-mainline.rc",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "sensors-mainline-as-root.rc",
+    name: "sensors-mainline_ext-as-root.rc",
     vendor: true,
     src: "sensors-mainline-as-root.rc",
     installable: false,
 }
 
 prebuilt_etc {
-    name: "sensors-mainline.xml",
+    name: "sensors-mainline_ext.xml",
     vendor: true,
     src: "sensors-mainline.xml",
     sub_dir: "vintf",
@@ -125,7 +125,7 @@ prebuilt_etc {
 // module can be installed as an alternative implementation of the default
 // sensors APEX (multi-install APEX).
 apex {
-    name: "com.android.hardware.sensors.mainline",
+    name: "com.android.hardware.sensors.mainline_ext",
     manifest: "apex_manifest.json",
     key: "com.android.hardware.key",
     certificate: ":com.android.hardware.certificate",
@@ -133,13 +133,13 @@ apex {
     updatable: false,
     vendor: true,
 
-    binaries: ["android.hardware.sensors-service.mainline"],
+    binaries: ["android.hardware.sensors-service.mainline_ext"],
     prebuilts: [
-        "com.android.hardware.sensors.mainline-linker-config",
-        "sensors-mainline.xml",
+        "com.android.hardware.sensors.mainline_ext-linker-config",
+        "sensors-mainline_ext.xml",
     ] + select(soong_config_variable("sensors_hal_mainline", "run_as_root"), {
-        true: ["sensors-mainline-as-root.rc"],
-        default: ["sensors-mainline.rc"],
+        true: ["sensors-mainline_ext-as-root.rc"],
+        default: ["sensors-mainline_ext.rc"],
     }) + select(soong_config_variable("sensors_hal_mainline", "include_all_permission_xmls"), {
         true: [
             "android.hardware.sensor.accelerometer.prebuilt.xml",
@@ -156,9 +156,9 @@ apex {
     }),
 
     native_shared_libs: [
-        "libsensors_iio",
-        "libsensors_input",
-        "libsensors_mock",
+        "libsensors_ext_iio",
+        "libsensors_ext_input",
+        "libsensors_ext_mock",
     ] + select(soong_config_variable("sensors_hal_mainline", "include_custom_backends"), {
         any @ flag_val: flag_val,
         default: [],

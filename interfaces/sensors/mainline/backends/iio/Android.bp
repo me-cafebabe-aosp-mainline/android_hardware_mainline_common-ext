@@ -4,7 +4,7 @@
 //
 
 cc_library_shared {
-    name: "libsensors_iio",
+    name: "libsensors_ext_iio",
     vendor: true,
     srcs: [
         "IioBackend.cpp",
@@ -14,12 +14,12 @@ cc_library_shared {
         "IioTrigger.cpp",
         "IioTypes.cpp",
     ],
-    header_libs: ["libsensors_mainline_headers"],
+    header_libs: ["libsensors_mainline_ext_headers"],
     static_libs: [
-        "libhwdb",
-        "libsensors_common",
-        "libsensors_hwdb",
-        "libsmbios_parser",
+        "libhwdb_ext",
+        "libsensors_ext_common",
+        "libsensors_ext_hwdb",
+        "libsmbios_parser_ext",
     ],
     shared_libs: [
         "android.hardware.sensors-V3-ndk",

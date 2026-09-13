@@ -79,10 +79,10 @@ std::string BackendLoader::ExpandName(const std::string& name) {
     if (name.find('/') != std::string::npos || ::android::base::EndsWith(name, ".so")) {
         return name;
     }
-    if (::android::base::StartsWith(name, "libsensors_")) {
+    if (::android::base::StartsWith(name, "libsensors_ext_")) {
         return name + ".so";
     }
-    return "libsensors_" + name + ".so";
+    return "libsensors_ext_" + name + ".so";
 }
 
 std::vector<std::string> BackendLoader::ResolveBackendList() {

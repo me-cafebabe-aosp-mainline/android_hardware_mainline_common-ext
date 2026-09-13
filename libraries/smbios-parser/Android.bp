@@ -15,7 +15,7 @@
 //
 
 cc_library {
-    name: "libsmbios_parser",
+    name: "libsmbios_parser_ext",
     vendor_available: true,
     recovery_available: true,
     min_sdk_version: "30",

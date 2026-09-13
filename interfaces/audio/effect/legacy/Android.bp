@@ -11,7 +11,7 @@
 // and their private dependencies live in the vendor linker namespace.
 
 cc_binary {
-    name: "android.hardware.audio.effect.service-aidl.legacy",
+    name: "android.hardware.audio.effect.service-aidl.legacy_ext",
     relative_install_path: "hw",
     vendor: true,
     defaults: [

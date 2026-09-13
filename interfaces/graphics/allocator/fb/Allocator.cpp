@@ -104,7 +104,7 @@ ndk::ScopedAStatus Allocator::isSupported(const BufferDescriptorInfo& descriptor
 }
 
 ndk::ScopedAStatus Allocator::getIMapperLibrarySuffix(std::string* suffix) {
-    *suffix = "fb";
+    *suffix = "fb_ext";
     return ndk::ScopedAStatus::ok();
 }
 

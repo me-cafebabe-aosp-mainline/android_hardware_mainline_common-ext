@@ -4,18 +4,18 @@
 //
 
 cc_library_shared {
-    name: "libsensors_input",
+    name: "libsensors_ext_input",
     vendor: true,
     srcs: [
         "InputBackend.cpp",
         "InputDevice.cpp",
     ],
-    header_libs: ["libsensors_mainline_headers"],
+    header_libs: ["libsensors_mainline_ext_headers"],
     static_libs: [
-        "libhwdb",
-        "libsensors_common",
-        "libsensors_hwdb",
-        "libsmbios_parser",
+        "libhwdb_ext",
+        "libsensors_ext_common",
+        "libsensors_ext_hwdb",
+        "libsmbios_parser_ext",
     ],
     shared_libs: [
         "android.hardware.sensors-V3-ndk",
