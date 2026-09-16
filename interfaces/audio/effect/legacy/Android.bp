@@ -51,6 +51,6 @@ cc_binary {
         "-Wthread-safety",
         "-DBACKEND_NDK",
     ],
-    init_rc: ["android.hardware.audio.effect.service-aidl.legacy.rc"],
-    vintf_fragments: ["android.hardware.audio.effect.service-aidl.legacy.xml"],
+    init_rc: ["android.hardware.audio.effect.service-aidl.legacy_ext.rc"],
+    vintf_fragments: ["android.hardware.audio.effect.service-aidl.legacy_ext.xml"],
 }

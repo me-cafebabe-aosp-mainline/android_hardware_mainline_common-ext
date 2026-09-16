@@ -49,17 +49,17 @@ cc_binary {
     defaults: ["android.hardware.graphics.composer3-service.drmfb_ext.defaults"],
     init_rc: select(soong_config_variable("drmfb_composer", "include_init_rc"), {
         false: [],
-        default: ["android.hardware.graphics.composer3-service.drmfb.rc"],
+        default: ["android.hardware.graphics.composer3-service.drmfb_ext.rc"],
     }),
     vintf_fragments: select(soong_config_variable("drmfb_composer", "include_vintf_fragments"), {
         false: [],
-        default: ["android.hardware.graphics.composer3-service.drmfb.xml"],
+        default: ["android.hardware.graphics.composer3-service.drmfb_ext.xml"],
     }),
 }
 
 prebuilt_etc {
     name: "drmfb_composer3_ext_apex_vintf",
-    src: "android.hardware.graphics.composer3-service.drmfb.xml",
+    src: "android.hardware.graphics.composer3-service.drmfb_ext.xml",
     filename_from_src: true,
     sub_dir: "vintf",
     vendor: true,
@@ -68,8 +68,8 @@ prebuilt_etc {
 
 genrule {
     name: "gen_drmfb_composer3_ext_apex_init_rc",
-    srcs: ["android.hardware.graphics.composer3-service.drmfb.rc"],
-    out: ["android.hardware.graphics.composer3-service.drmfb.apex.rc"],
+    srcs: ["android.hardware.graphics.composer3-service.drmfb_ext.rc"],
+    out: ["android.hardware.graphics.composer3-service.drmfb_ext.apex.rc"],
     cmd: "sed " +
         "-e 's%/vendor/bin/%/apex/com.android.hardware.graphics.composer/bin/%' " +
         "$(in) > $(out)",
