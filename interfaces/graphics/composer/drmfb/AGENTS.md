@@ -1,5 +1,9 @@
 # Agent Notes
 
+> See the repository root `AGENTS.md` (`hardware/mainline/common/AGENTS.md`)
+> and `docs/` for shared code style, formatting, workflow, and commit
+> conventions. This file only covers what's specific to this directory.
+
 This directory implements a client-composition-only Composer3 V5 DRM HAL. Read
 `INITIAL_IMPLEMENTATION.md` before changing it; that file limits reference
 paths and explicitly prohibits local builds and tests.
@@ -74,8 +78,7 @@ paths and explicitly prohibits local builds and tests.
 - `drmfb-apex-*`: vendor APEX manifest and SELinux file labels. The APEX init
   module rewrites the standalone `/vendor/bin/` path at build time.
 
-Keep changes minimal and Google C++ style. Do not use exceptions or catch
-blocks. Update `README.md` when changing supported behavior.
+Keep changes minimal. Update `README.md` when changing supported behavior.
 
 ## Note about naming convention
 
@@ -83,3 +86,9 @@ This is a component imported from the original repository, and we should avoid
 conflicts with the one in the original repository.
 
 For details, check out `README.md` at repository root.
+
+## Commit Conventions
+
+Commit subject prefix: `mainline/common: interfaces/graphics/composer/drmfb: `.
+See root `AGENTS.md` → `docs/COMMIT_CONVENTIONS.md` for the rest of the
+message format.

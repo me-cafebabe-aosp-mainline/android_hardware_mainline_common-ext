@@ -1,23 +1,21 @@
 # Notes for AI agents working on this HAL
 
+> See the repository root `AGENTS.md` (`hardware/mainline/common/AGENTS.md`)
+> and `docs/` for shared code style, formatting, workflow, and commit
+> conventions. This file only covers what's specific to this directory.
+
 Read `README.md` first for the product view, `INITIAL_IMPLEMENTATION.md` for
 the original requirements. This file is about the code.
 
 ## Ground rules
 
-* C++ only, Google C++ style with the repository's `.clang-format`
-  (`hardware/mainline/common-ext/.clang-format`, 4 spaces, 100 columns). Run
-  `prebuilts/clang/host/linux-x86/clang-r*/bin/clang-format -i` on every file
-  you touch. Our own code uses Google naming (`CamelCase()` functions,
-  `snake_case_` members, `kConstant`); overrides of AIDL / example HAL methods
-  keep their original `camelCase` names.
-* No `try` / `catch`. Report failures through return values
-  (`std::optional`, `::android::status_t`, `ndk::ScopedAStatus`).
-* Use `libbase` (`android-base/*.h`) for logging, properties, strings. Log
-  tags start with `MainlineAudio_`.
-* Do not compile or deploy yourself; the human does and reports back.
-* Every commit: subject `mainline/common-ext: interfaces/audio/mainline: ...`,
-  detailed body, trailer `Assisted-by: <Agent>/<Model ID>`.
+* Our own code uses Google naming (`CamelCase()` functions, `snake_case_`
+  members, `kConstant`); overrides of AIDL / example HAL methods keep their
+  original `camelCase` names.
+* Log tags start with `MainlineAudio_`.
+* Commit subject prefix: `mainline/common: interfaces/audio/mainline: `.
+  See root `AGENTS.md` → `docs/COMMIT_CONVENTIONS.md` for the rest of the
+  message format.
 * Keep `README.md` (properties table, device model) in sync with the code.
 
 ## Where things are
@@ -117,6 +115,31 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 * `plughw:` fallback is what guarantees 16-bit / 48 kHz / stereo everywhere;
   profiles are augmented with that combination even if the hardware does not
   do it natively (`AugmentCapabilities`).
+* Mix port profiles are the *intersection* (formats, rates, channel count
+  range) of the endpoints they are routed to (`IntersectCapabilities`),
+  clamped to a channel window per mix port. The augmentation above is what normally keeps the
+  primary ports non-empty, but `FilterCapabilities` (card rates / bits
+  properties) runs after it and can remove the common subset. A mix port
+  whose profiles end up empty is treated by `Module` / the framework as a
+  *dynamic* port, not as an error, so never create one: the primary ports go
+  through `OrFallback()` (16-bit 44.1 / 48 kHz, served by the plug layer),
+  optional ports are skipped when `HasCommonProfile()` fails.
+* High resolution output is split off `primary output` (`HraFilter`,
+  `kHraOutputCutoff`): the primary port keeps 8 / 16-bit below 88.2 kHz,
+  `hra output` (DIRECT | DIRECT_PCM) gets 24 / 32-bit / float at 88.2 kHz and
+  above. The combinations in between (e.g. 24-bit at 48 kHz) are on neither.
+  For the primary port the split only removes formats / rates as long as
+  some remain, so a card restricted to e.g. `bits=24` keeps a usable
+  primary output.
+  The policy manager never opens a direct output for a linear PCM stereo
+  stream up to 192 kHz unless the client asks for one, so normal playback
+  always mixes on the primary port.
+* Default output promotion (`DeviceInventory::AssignRoles`) never picks HDMI:
+  it must stay a template that `WiredAccessoryManager` connects. Extra HDMI /
+  DP heads are demoted to bus outputs, so `AssignRoles` remembers them
+  (`extra_hdmi_heads`) and skips them when promoting a bus output. Other bus
+  outputs (unrecognised UCM devices, a speaker on a secondary card, ...) stay
+  promotable. Without a promotable path a null speaker is added.
 * Master volume / mute are unsupported on purpose (framework does it
   digitally); mic mute is done by zeroing captured data.
 * USB is handled the AOSP way (templates + `connectExternalDevice` with an

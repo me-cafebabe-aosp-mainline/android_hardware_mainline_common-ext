@@ -1,5 +1,9 @@
 # AGENTS.md - Mainline Vibrator HAL
 
+> See the repository root `AGENTS.md` (`hardware/mainline/common/AGENTS.md`)
+> and `docs/` for shared code style, formatting, workflow, and commit
+> conventions. This file only covers what's specific to this directory.
+
 ## Project Overview
 
 This is an Android Vibrator HAL implementation for devices running mainline Linux kernel.
@@ -39,9 +43,9 @@ It drives haptic controllers exposed via the Linux Input force-feedback (EV_FF) 
 
 ## Coding Conventions
 
-- C++ with Google C++ Style Guide
-- Use `libbase` for Android utilities (logging, properties, unique_fd)
-- No try/catch blocks
+See root `AGENTS.md` → `docs/CODE_STYLE.md` for general style, error
+handling, and formatting rules. Module-specific:
+
 - LOG(VERBOSE) for debug, LOG(INFO) for important events, LOG(ERROR) for errors
 
 ## Supported Kernel Drivers
@@ -49,10 +53,11 @@ It drives haptic controllers exposed via the Linux Input force-feedback (EV_FF) 
 Focused on: `gpio-vibra`, `pm8xxx-vibrator`, `pwm-vibra`, `qcom-spmi-haptics`, `regulator-haptic`.
 Also supports: `drv260x`, `da7280`, and other drivers exposing EV_FF with FF_RUMBLE.
 
-## Verification
+## Commit Conventions
 
-Do NOT try to compile. The user will compile and report issues.
-Run lint/format checks if requested.
+Commit subject prefix: `mainline/common: interfaces/vibrator/mainline: `.
+See root `AGENTS.md` → `docs/COMMIT_CONVENTIONS.md` for the rest of the
+message format.
 
 ## Note about naming convention
 

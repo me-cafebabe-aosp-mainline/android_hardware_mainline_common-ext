@@ -16,10 +16,13 @@ namespace aidl::android::hardware::audio::core::mainline::routing {
 
 // Names of the mix ports created by the builder.
 inline constexpr const char* kPrimaryOutputMixPort = "primary output";
+inline constexpr const char* kHiresOutputMixPort = "hra output";
 inline constexpr const char* kMultichannelOutputMixPort = "multichannel output";
 inline constexpr const char* kPrimaryInputMixPort = "primary input";
 inline constexpr const char* kUsbOutputMixPort = "usb output";
 inline constexpr const char* kUsbInputMixPort = "usb input";
+
+inline constexpr uint32_t kHraOutputCutoff = 88200;
 
 // Builds the Module::Configuration (device ports, mix ports, routes and
 // initial port configs) from the discovered endpoints and assigns the device
@@ -29,9 +32,13 @@ inline constexpr const char* kUsbInputMixPort = "usb input";
 //   * one device port per endpoint;
 //   * four USB device port templates (device / headset, in / out) served
 //     through connectExternalDevice();
-//   * "primary output" (PRIMARY flag) routed to every output device port;
+//   * "primary output" (PRIMARY flag) routed to every output device port,
+//     restricted to 8 / 16-bit formats below kHraOutputCutoff;
 //   * "multichannel output" (DIRECT flag) routed to the outputs that accept
 //     six or more channels, only when such outputs exist;
+//   * "hra output" (DIRECT | DIRECT_PCM flags, stereo, 24 / 32-bit / float at
+//     kHraOutputCutoff and above) routed to the outputs that support high
+//     resolution audio, only when such outputs exist;
 //   * "primary input" routed from every input device port;
 //   * "usb output" / "usb input" with dynamic profiles, routed to the USB
 //     templates only.

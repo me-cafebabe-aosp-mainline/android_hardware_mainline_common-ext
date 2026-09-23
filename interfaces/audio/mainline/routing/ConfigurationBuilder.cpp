@@ -117,18 +117,94 @@ AudioRoute MakeRoute(const std::vector<int32_t>& sources, int32_t sink) {
     return route;
 }
 
-// Union of the capabilities of a set of endpoints, restricted to a channel
-// count window.
-alsa::HwCapabilities UnionCapabilities(const std::vector<const Endpoint*>& endpoints,
-                                       unsigned int min_channels, unsigned int max_channels) {
+// Intersection of the capabilities of a set of endpoints, restricted to a
+// channel count window.
+alsa::HwCapabilities IntersectCapabilities(const std::vector<const Endpoint*>& endpoints,
+                                           unsigned int min_channels, unsigned int max_channels) {
     alsa::HwCapabilities caps;
-    for (const Endpoint* e : endpoints) {
-        caps.formats.insert(e->caps.formats.begin(), e->caps.formats.end());
-        caps.rates.insert(e->caps.rates.begin(), e->caps.rates.end());
-    }
     caps.min_channels = min_channels;
     caps.max_channels = max_channels;
+    for (const Endpoint* e : endpoints) {
+        caps.min_channels = std::max(caps.min_channels, e->caps.min_channels);
+        caps.max_channels = std::min(caps.max_channels, e->caps.max_channels);
+    }
+
+    if (endpoints.empty() || endpoints.front()->caps.formats.empty() ||
+        endpoints.front()->caps.rates.empty())
+        return caps;
+
+    caps.formats = endpoints.front()->caps.formats;
+    caps.rates = endpoints.front()->caps.rates;
+
+    for (size_t i = 1; i < endpoints.size(); ++i) {
+        std::erase_if(caps.formats,
+                      [&](const auto& f) { return endpoints[i]->caps.formats.count(f) == 0; });
+        std::erase_if(caps.rates,
+                      [&](const auto& r) { return endpoints[i]->caps.rates.count(r) == 0; });
+    }
+
     return caps;
+}
+
+bool IsHraFormat(snd_pcm_format_t format) {
+    return format == SND_PCM_FORMAT_S24_LE || format == SND_PCM_FORMAT_S24_3LE ||
+           format == SND_PCM_FORMAT_S32_LE || format == SND_PCM_FORMAT_FLOAT_LE;
+}
+
+bool IsHraRate(unsigned int rate) {
+    return rate >= kHraOutputCutoff;
+}
+
+// Whether `caps` still describes at least one configuration. A mix port
+// without profiles is not an error to Module and the framework but a
+// *dynamic* port, whose profiles are expected to be filled in at connection
+// time, which never happens for ours.
+bool HasCommonProfile(const alsa::HwCapabilities& caps) {
+    return !caps.formats.empty() && !caps.rates.empty() && caps.max_channels > 0 &&
+           caps.min_channels <= caps.max_channels;
+}
+
+// Removes the elements of `set` matching `pred`, unless that would leave it
+// empty.
+template <typename Set, typename Pred>
+void EraseIfSomethingRemains(Set& set, Pred pred) {
+    Set kept = set;
+    std::erase_if(kept, pred);
+    if (!kept.empty()) set = std::move(kept);
+}
+
+// Splits high resolution audio off the primary output. The "hra output" keeps
+// only high resolution formats and rates. The primary output drops them, but
+// only as long as something remains: when every format (or rate) the device
+// ports share is a high resolution one, e.g. because the card rates / bits
+// properties asked for exactly that, the primary output keeps them rather
+// than end up without any profile.
+alsa::HwCapabilities HraFilter(alsa::HwCapabilities caps, bool is_hra) {
+    if (is_hra) {
+        std::erase_if(caps.formats, [](const auto& f) { return !IsHraFormat(f); });
+        std::erase_if(caps.rates, [](const auto& r) { return !IsHraRate(r); });
+    } else {
+        EraseIfSomethingRemains(caps.formats, [](const auto& f) { return IsHraFormat(f); });
+        EraseIfSomethingRemains(caps.rates, [](const auto& r) { return IsHraRate(r); });
+    }
+
+    return caps;
+}
+
+// The primary ports must always have profiles. When the device ports routed
+// to one have nothing in common (possible once the card rates / bits
+// properties have restricted them), fall back to what the plug layer can
+// always serve.
+alsa::HwCapabilities OrFallback(alsa::HwCapabilities caps, const char* port_name, bool is_input,
+                                unsigned int min_channels, unsigned int max_channels) {
+    if (HasCommonProfile(caps)) return caps;
+    LOG(WARNING) << __func__ << ": the device ports of \"" << port_name
+                 << "\" have no configuration in common (" << caps.ToString()
+                 << "), using the fallback profile";
+    alsa::HwCapabilities fallback = alsa::FallbackCapabilities(is_input);
+    fallback.min_channels = min_channels;
+    fallback.max_channels = max_channels;
+    return fallback;
 }
 
 // USB template ports get a fixed set of "connected" profiles for the
@@ -151,9 +227,11 @@ std::unique_ptr<Configuration> BuildConfiguration(DeviceInventory& inventory,
     // --- Device ports, one per endpoint -------------------------------------
     std::vector<int32_t> output_device_ports;
     std::vector<int32_t> input_device_ports;
+    std::vector<int32_t> hires_device_ports;
     std::vector<int32_t> multichannel_device_ports;
     std::vector<const Endpoint*> output_endpoints;
     std::vector<const Endpoint*> input_endpoints;
+    std::vector<const Endpoint*> hires_endpoints;
     std::vector<const Endpoint*> multichannel_endpoints;
 
     for (Endpoint& endpoint : inventory.mutable_endpoints()) {
@@ -174,6 +252,11 @@ std::unique_ptr<Configuration> BuildConfiguration(DeviceInventory& inventory,
             if (endpoint.caps.max_channels >= 6 && !endpoint.IsNull()) {
                 multichannel_device_ports.push_back(port.id);
                 multichannel_endpoints.push_back(&endpoint);
+            }
+            if (!endpoint.IsNull() && std::ranges::any_of(endpoint.caps.rates, IsHraRate) &&
+                std::ranges::any_of(endpoint.caps.formats, IsHraFormat)) {
+                hires_device_ports.push_back(port.id);
+                hires_endpoints.push_back(&endpoint);
             }
         }
         LOG(INFO) << __func__ << ": device port " << port.id << " <- " << endpoint.ToString();
@@ -208,29 +291,54 @@ std::unique_ptr<Configuration> BuildConfiguration(DeviceInventory& inventory,
     AudioPort primary_out = MakeMixPort(
             c->nextPortId++, kPrimaryOutputMixPort, false,
             makeBitPositionFlagMask(AudioOutputFlags::PRIMARY), 1, 1,
-            alsa::ProfilesFromCapabilities(UnionCapabilities(output_endpoints, 1, 2), false));
+            alsa::ProfilesFromCapabilities(
+                    OrFallback(HraFilter(IntersectCapabilities(output_endpoints, 1, 2), false),
+                               kPrimaryOutputMixPort, false, 1, 2),
+                    false));
     for (const int32_t sink : output_device_ports) {
         c->routes.push_back(MakeRoute({primary_out.id}, sink));
     }
     c->ports.push_back(std::move(primary_out));
 
-    if (properties.multichannel && !multichannel_endpoints.empty()) {
-        AudioPort multichannel_out =
-                MakeMixPort(c->nextPortId++, kMultichannelOutputMixPort, false,
-                            makeBitPositionFlagMask(AudioOutputFlags::DIRECT), 1, 1,
-                            alsa::ProfilesFromCapabilities(
-                                    UnionCapabilities(multichannel_endpoints, 3, 8), false));
-        LOG(INFO) << __func__ << ": exposing \"" << kMultichannelOutputMixPort << "\" for "
-                  << multichannel_endpoints.size() << " device port(s)";
-        for (const int32_t sink : multichannel_device_ports) {
-            c->routes.push_back(MakeRoute({multichannel_out.id}, sink));
+    // The optional outputs are left out when their device ports have nothing
+    // in common, rather than exposed without profiles.
+    auto add_optional_output = [&c](const char* name, int32_t flags,
+                                    const alsa::HwCapabilities& caps,
+                                    const std::vector<int32_t>& sinks) {
+        if (!HasCommonProfile(caps)) {
+            LOG(WARNING) << "BuildConfiguration: not exposing \"" << name << "\": its "
+                         << sinks.size() << " device port(s) have no configuration in common";
+            return;
         }
-        c->ports.push_back(std::move(multichannel_out));
+        AudioPort port = MakeMixPort(c->nextPortId++, name, false, flags, 1, 1,
+                                     alsa::ProfilesFromCapabilities(caps, false));
+        LOG(INFO) << "BuildConfiguration: exposing \"" << name << "\" for " << sinks.size()
+                  << " device port(s): " << caps.ToString();
+        for (const int32_t sink : sinks) {
+            c->routes.push_back(MakeRoute({port.id}, sink));
+        }
+        c->ports.push_back(std::move(port));
+    };
+
+    if (properties.multichannel && !multichannel_endpoints.empty()) {
+        add_optional_output(
+                kMultichannelOutputMixPort, makeBitPositionFlagMask(AudioOutputFlags::DIRECT),
+                IntersectCapabilities(multichannel_endpoints, 3, 8), multichannel_device_ports);
+    }
+
+    if (!hires_endpoints.empty()) {
+        add_optional_output(kHiresOutputMixPort,
+                            makeBitPositionFlagMask(AudioOutputFlags::DIRECT) |
+                                    makeBitPositionFlagMask(AudioOutputFlags::DIRECT_PCM),
+                            HraFilter(IntersectCapabilities(hires_endpoints, 1, 2), true),
+                            hires_device_ports);
     }
 
     AudioPort primary_in = MakeMixPort(
             c->nextPortId++, kPrimaryInputMixPort, true, 0, 0, 1,
-            alsa::ProfilesFromCapabilities(UnionCapabilities(input_endpoints, 1, 2), true));
+            alsa::ProfilesFromCapabilities(OrFallback(IntersectCapabilities(input_endpoints, 1, 2),
+                                                      kPrimaryInputMixPort, true, 1, 2),
+                                           true));
     c->routes.push_back(MakeRoute(input_device_ports, primary_in.id));
     c->ports.push_back(std::move(primary_in));
 

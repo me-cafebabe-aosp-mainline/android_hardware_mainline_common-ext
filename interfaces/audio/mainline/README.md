@@ -77,9 +77,13 @@ $(call soong_config_set_bool,mainline_audio,internal_effects,true)
   mainline kernel the sound card exposes jacks as input devices with
   `SW_HEADPHONE_INSERT` / `SW_MICROPHONE_INSERT` / `SW_LINEOUT_INSERT`, so set
   `config_useDevInputEventForAudioJack=true` in the device's framework
-  overlay. HDMI connection events are only reported by the framework on TV
-  devices (`HdmiControlService`); see "Device model" for how HDMI-only devices
-  are handled.
+  overlay. HDMI is an external template too: `WiredAccessoryManager` connects
+  it when the kernel reports an HDMI / DisplayPort sink, either through an
+  input device reporting `SW_LINEOUT_INSERT` + `SW_VIDEOOUT_INSERT` together
+  (the `SND_JACK_AVOUT` jack of the HDA HDMI codec and of ASoC `hdmi-codec`,
+  with the above overlay) or through the Android specific
+  `/sys/class/switch/hdmi_audio` (or `hdmi`) switch node. Without either,
+  HDMI audio is never selected automatically; see "Device model".
 * **Audio policy.** No `audio_policy_configuration.xml` is needed: the module
   list, ports and routes come from the HAL. The engine configuration
   (strategies, volume curves) is the AOSP phone example shipped in the APEX; a
@@ -141,9 +145,15 @@ Rules applied on top:
 * The framework can connect only one external device per type, so only the
   highest priority template of each kind is kept; the others become bus ports.
 * A module must have a default output and input. When the primary card has
-  no speaker / mic, the best remaining path is promoted (line out, then a bus
-  output, headphones, HDMI, S/PDIF). This is how a desktop codec with only a
-  line out, or an HDMI-only TV box, still gets a working default output.
+  no speaker / mic, the best remaining path is promoted, primary card first,
+  then the other cards. Outputs: line out, a bus output, headphones, headset,
+  S/PDIF. Inputs: a bus input, then the headset mic. This is how a desktop
+  codec with only a line out still gets a working default output.
+* HDMI / DisplayPort is never promoted: neither the HDMI template nor the
+  additional HDMI / DisplayPort heads, which end up as bus outputs, are
+  candidates. A set top box or devkit with HDMI only therefore gets a *null*
+  speaker as its default output and plays through the HDMI template once the
+  framework reports the sink as connected (see "Jack detection" above).
 * Without any sound card, **null** endpoints are created so that the HAL keeps
   answering the framework: playback is discarded, capture is silence.
 * USB sound cards are *not* enumerated statically. They arrive through
@@ -152,11 +162,34 @@ Rules applied on top:
 
 Mix ports:
 
-* `primary output` (PRIMARY): routed to every output device port.
+* `primary output` (PRIMARY): routed to every output device port. Limited to
+  the non high resolution part of the capabilities: 8 / 16-bit formats and
+  rates below 88.2 kHz (see below for the exception).
+* `hra output` (DIRECT | DIRECT_PCM): stereo high resolution playback, only
+  24-bit, 32-bit and float formats at 88.2 kHz and above. Routed to the
+  outputs that support at least one such format and one such rate; only
+  present when such an output exists (no property switch). Being a direct
+  port, the framework only uses it for streams that ask for a direct output.
 * `multichannel output` (DIRECT): routed to the outputs that accept six or
   more channels; only present when such an output exists.
 * `primary input`: routed from every input device port.
 * `usb output` / `usb input`: dynamic profiles, routed to the USB templates.
+
+The formats and sample rates of the `primary output`, `hra output`,
+`multichannel output` and `primary input` profiles are the *intersection* of
+those of the device ports the mix port is routed to, so that the framework
+never picks a configuration one of them does not support. The same goes for
+the channel count range, within a window per mix port (1..2, 1..2, 3..8 and
+1..2): a 5.1 and a 7.1 capable output together get a `multichannel output`
+of at most six channels.
+16-bit / 44.1 / 48 kHz is added to every probed device (the plug layer can
+always serve it), which normally keeps the intersection of the primary ports
+non-empty. Should `card.<selector>.rates` / `.bits` leave the device ports of
+a primary port with nothing in common, the port falls back to 16-bit at
+44.1 / 48 kHz, which the plug layer converts, and a warning is logged; the
+optional `hra output` / `multichannel output` are left out in that case.
+When those properties leave only high resolution formats (or rates), the
+`primary output` keeps them instead of losing every profile.
 
 Multichannel PCM data is reordered from Android's `FL FR FC LFE BL BR (SL SR)`
 to ALSA's `FL FR BL BR FC LFE (SL SR)` for 5.1 / 7.1.
@@ -196,7 +229,9 @@ endpoint with its capabilities and the UCM devices currently enabled.
 * Master volume and mute are reported as unsupported; the framework applies
   them in software.
 * HDMI / DisplayPort connection state is not detected by the HAL (the AIDL
-  interface has no way for a HAL to announce a device); on non-TV devices
-  HDMI audio is reachable as a bus port or, on HDMI-only devices, as the
-  promoted default output.
+  interface has no way for a HAL to announce a device). The HDMI template is
+  only connected when the framework learns about the sink (see "Jack
+  detection"); additional HDMI / DisplayPort heads are reachable as bus
+  ports. HDMI is never promoted to the default output, so an HDMI-only device
+  without such reporting stays on the null speaker.
 * Cards that appear after the HAL started are not picked up (USB excepted).
