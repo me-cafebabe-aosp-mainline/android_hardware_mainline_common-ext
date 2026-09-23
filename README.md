@@ -5,7 +5,7 @@
 With the new rules to restrict AI tools usage in LineageOS organization,
 we're forced to copy the AI-written components from `hardware/mainline/common`
 repository to this repository, which stays outside of LineageOS organization,
-in order to keep the development happening.
+in order to keep some big development happening.
 
 ## The naming conventions for the components imported from the original repository
 
