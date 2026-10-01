@@ -108,10 +108,12 @@ We link `libaudioserviceexampleimpl` statically and derive from:
 ## Design decisions worth knowing
 
 * Device *types* are chosen so that the default Android policy engine does the
-  right thing without configuration: exactly one attached `OUT_SPEAKER` /
-  `IN_MICROPHONE` (default flags), wired things as external templates the
-  framework connects, everything else as addressed `*_BUS` ports that are
-  selectable but never auto-selected.
+  right thing without configuration: one attached `OUT_SPEAKER` and, if a
+  capture path exists, one attached `IN_MICROPHONE` (default flags); wired
+  things as external templates the framework connects, everything else as
+  addressed `*_BUS` ports that are selectable but never auto-selected. A null
+  speaker preserves cardless boot, but a null mic is opt-in (`null_mic`) for
+  bring-up; with no input endpoints there is no primary input mix port.
 * `plughw:` fallback is what guarantees 16-bit / 48 kHz / stereo everywhere;
   profiles are augmented with that combination even if the hardware does not
   do it natively (`AugmentCapabilities`).
@@ -140,6 +142,13 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   (`extra_hdmi_heads`) and skips them when promoting a bus output. Other bus
   outputs (unrecognised UCM devices, a speaker on a secondary card, ...) stay
   promotable. Without a promotable path a null speaker is added.
+  The HDMI template's stream backing is selected at routing time from all
+  plugged HDMI heads using their ALSA jack controls, not just the head that
+  won template priority at start-up. Additional heads remain bus ports.
+  Promoting a wired template to a default device retains the template so
+  framework jack events can still route to it. When UCM has headphone playback
+  and headset-mic capture but no headset playback, the headphone path also
+  supplies an `OUT_HEADSET` template for four-pole plugs.
 * Master volume / mute are unsupported on purpose (framework does it
   digitally); mic mute is done by zeroing captured data.
 * USB is handled the AOSP way (templates + `connectExternalDevice` with an
@@ -166,6 +175,30 @@ We link `libaudioserviceexampleimpl` statically and derive from:
   got from `getAudioPortConfigs()` as the template for its requests, and
   `Module::setAudioPortConfigGain` rejects any gain on a port without `gains`,
   which fails every stream open ("gains for port N is undefined").
+  Only attached ports have initial configs: an initial config for an external
+  template makes `Hal2AidlMapper` reuse its port ID after connection, which
+  `Module::setAudioPortConfigImpl` rejects as an unconnected template.
+
+## Framework Interaction (AOSP source)
+
+When you need to check how the framework talks to this HAL, look at:
+
+- `hardware/interfaces/audio/aidl/android/hardware/audio/core/` - the
+  `IModule`/`IConfig`/`StreamDescriptor` AIDL interface this HAL implements.
+- `hardware/interfaces/audio/aidl/default/` (example HAL) - `Module`,
+  `StreamCommonImpl`/`StreamIn`/`StreamOut` this directory subclasses (see
+  `## Reused from the example HAL` above); read this before touching
+  `ModuleMainline.cpp` or `StreamMainline.cpp`.
+- `frameworks/av/media/libaudiohal/impl/DeviceHalAidl.*`,
+  `StreamHalAidl.*`, `Hal2AidlMapper.*` - the framework-side client that
+  calls `IModule`/streams and maps AIDL ports/patches to the legacy
+  `audio_devices_t`/`audio_patch` world.
+- `frameworks/av/services/audiopolicy/` - the policy engine that decides
+  routing/port selection; consumes `config/audio_policy_engine_configuration.xml`
+  installed by this HAL (schema in
+  `hardware/interfaces/audio/aidl/default/config/audioPolicy/engine/`).
+- `frameworks/av/services/audioflinger/` - opens streams and drives the
+  data path on top of `libaudiohal`.
 
 ## When adding a property
 

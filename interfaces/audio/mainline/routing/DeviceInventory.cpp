@@ -167,6 +167,7 @@ std::string Endpoint::ToString() const {
     } else {
         os << " card=" << card << "[" << card_id << "] pcm=" << pcm_name;
         if (!ucm_device.empty()) os << " ucm=\"" << ucm_device << "\"";
+        if (!jack_control.empty()) os << " jack=\"" << jack_control << "\"";
         if (fixed_channels != 0) os << " channels=" << fixed_channels;
         os << " prio=" << priority << " caps={" << caps.ToString() << "}";
     }
@@ -184,7 +185,7 @@ std::shared_ptr<DeviceInventory> DeviceInventory::Discover(const Properties& pro
     inventory->ProbeCapabilities();
     inventory->FilterCapabilities();
     inventory->AssignRoles();
-    inventory->AddNullEndpointsIfNeeded();
+    inventory->AddNullEndpointsIfNeeded(properties.null_mic);
     inventory->FinalizeEndpoints();
     LOG(INFO) << inventory->Dump();
     return inventory;
@@ -292,6 +293,7 @@ void DeviceInventory::CollectCandidates(const Properties& properties) {
 }
 
 void DeviceInventory::CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager& ucm) {
+    const size_t first_endpoint = endpoints_.size();
     for (const ucm::UcmDevice& device : ucm.devices()) {
         for (const bool playback : {true, false}) {
             const std::string& pcm = playback ? device.playback_pcm : device.capture_pcm;
@@ -309,12 +311,35 @@ void DeviceInventory::CollectFromUcm(const alsa::CardInfo& card, ucm::UcmManager
             endpoint.card_id = card.id;
             endpoint.pcm_name = pcm;
             endpoint.ucm_device = device.name;
+            endpoint.is_hdmi_head = endpoint.role == DeviceRole::kHdmi;
+            if (endpoint.is_hdmi_head) endpoint.jack_control = device.jack_control;
             endpoint.priority = playback ? device.playback_priority : device.capture_priority;
             endpoint.fixed_channels = static_cast<unsigned int>(playback ? device.playback_channels
                                                                          : device.capture_channels);
             endpoint.name = device.name;
             endpoints_.push_back(std::move(endpoint));
         }
+    }
+
+    // UCM commonly calls the playback path "Headphones" and the capture path
+    // "Headset". Android connects OUT_HEADSET (not OUT_HEADPHONE) with IN_HEADSET
+    // when a mic is present, so both output types must reach the same path.
+    bool has_headset_mic = false;
+    bool has_headset_output = false;
+    const Endpoint* headphones = nullptr;
+    for (size_t i = first_endpoint; i < endpoints_.size(); ++i) {
+        const Endpoint& e = endpoints_[i];
+        has_headset_mic |= e.role == DeviceRole::kHeadsetMic;
+        has_headset_output |= e.role == DeviceRole::kHeadset;
+        if (e.role == DeviceRole::kHeadphones &&
+            (headphones == nullptr || e.priority > headphones->priority)) {
+            headphones = &e;
+        }
+    }
+    if (has_headset_mic && !has_headset_output && headphones != nullptr) {
+        Endpoint headset = *headphones;
+        headset.role = DeviceRole::kHeadset;
+        endpoints_.push_back(std::move(headset));
     }
 }
 
@@ -338,6 +363,10 @@ void DeviceInventory::CollectFromPcmDevices(const alsa::CardInfo& card) {
             endpoint.card = card.index;
             endpoint.card_id = card.id;
             endpoint.pcm_name = pcm.HwName();
+            if (endpoint.role == DeviceRole::kHdmi) {
+                endpoint.is_hdmi_head = true;
+                endpoint.jack_control = "HDMI/DP,pcm=" + std::to_string(pcm.device) + " Jack";
+            }
             endpoint.name = pcm.name;
             // Lower device numbers first.
             endpoint.priority = 1000 - pcm.device;
@@ -455,13 +484,13 @@ void DeviceInventory::AssignRoles() {
         }
     }
 
-    // Every module needs an attached default output and input. Promote the
-    // most suitable path when the card has no dedicated speaker / microphone,
+    // Promote the most suitable path when the card has no dedicated speaker / microphone,
     // e.g. desktop codecs with line out only. HDMI / DP is never promoted,
     // neither the template nor the extra heads that became bus outputs: the
     // framework switches to HDMI itself once the sink is reported, so
     // HDMI-only devices get a null speaker instead.
-    auto promote = [this, &used_templates, &extra_hdmi_heads](
+    std::vector<Endpoint> promoted_endpoints;
+    auto promote = [this, &extra_hdmi_heads, &promoted_endpoints](
                            bool is_input, DeviceRole target,
                            std::initializer_list<DeviceRole> preference) {
         for (const bool primary_only : {true, false}) {
@@ -473,8 +502,15 @@ void DeviceInventory::AssignRoles() {
                     LOG(INFO) << __func__ << ": promoting \"" << e.name << "\" (" << e.pcm_name
                               << ", " << routing::ToString(e.role) << ") to "
                               << routing::ToString(target);
-                    used_templates.erase(e.role);
-                    e.role = target;
+                    if (IsExternalRole(e.role)) {
+                        // Keep the external template: the framework may still
+                        // connect this same path when a jack is inserted.
+                        Endpoint promoted = e;
+                        promoted.role = target;
+                        promoted_endpoints.push_back(std::move(promoted));
+                    } else {
+                        e.role = target;
+                    }
                     return true;
                 }
             }
@@ -489,9 +525,12 @@ void DeviceInventory::AssignRoles() {
     if (!have_mic) {
         have_mic = promote(true, DeviceRole::kMic, {DeviceRole::kBusIn, DeviceRole::kHeadsetMic});
     }
+    for (Endpoint& promoted : promoted_endpoints) {
+        endpoints_.push_back(std::move(promoted));
+    }
 }
 
-void DeviceInventory::AddNullEndpointsIfNeeded() {
+void DeviceInventory::AddNullEndpointsIfNeeded(bool null_mic) {
     const bool have_speaker =
             std::any_of(endpoints_.begin(), endpoints_.end(),
                         [](const Endpoint& e) { return e.role == DeviceRole::kSpeaker; });
@@ -510,7 +549,7 @@ void DeviceInventory::AddNullEndpointsIfNeeded() {
         endpoints_.push_back(std::move(e));
     };
     if (!have_speaker) add_null(DeviceRole::kSpeaker, false);
-    if (!have_mic) add_null(DeviceRole::kMic, true);
+    if (!have_mic && null_mic) add_null(DeviceRole::kMic, true);
 }
 
 void DeviceInventory::FinalizeEndpoints() {
@@ -590,6 +629,21 @@ const Endpoint* DeviceInventory::FindByPortId(int32_t port_id) const {
         if (e.port_id == port_id) return &e;
     }
     return nullptr;
+}
+
+const Endpoint* DeviceInventory::SelectHdmiEndpoint(const Endpoint& template_endpoint) const {
+    if (template_endpoint.role != DeviceRole::kHdmi) return &template_endpoint;
+    const Endpoint* unknown = nullptr;
+    for (const Endpoint& e : endpoints_) {
+        if (!e.is_hdmi_head) continue;
+        std::optional<bool> plugged;
+        if (!e.jack_control.empty()) plugged = alsa::ReadJackState(e.card, e.jack_control);
+        if (plugged == true) return &e;
+        if (!plugged.has_value() && unknown == nullptr) unknown = &e;
+    }
+    // Unknown controls take precedence over known-disconnected heads. If all
+    // controls report disconnected, keep the original template as a fallback.
+    return unknown != nullptr ? unknown : &template_endpoint;
 }
 
 std::optional<Endpoint> DeviceInventory::MakeUsbEndpoint(const AudioDevice& device,

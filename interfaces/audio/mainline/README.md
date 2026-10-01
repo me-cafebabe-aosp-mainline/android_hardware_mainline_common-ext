@@ -84,6 +84,11 @@ $(call soong_config_set_bool,mainline_audio,internal_effects,true)
   with the above overlay) or through the Android specific
   `/sys/class/switch/hdmi_audio` (or `hdmi`) switch node. Without either,
   HDMI audio is never selected automatically; see "Device model".
+  When a card has multiple HDMI / DP PCMs, the HAL reads their ALSA jack
+  controls to route the connected HDMI template to a plugged head. UCM's
+  `JackControl` is used when present; without UCM, HDA-style
+  `HDMI/DP,pcm=N Jack` controls are used. The framework still needs to report
+  HDMI availability as above.
 * **Audio policy.** No `audio_policy_configuration.xml` is needed: the module
   list, ports and routes come from the HAL. The engine configuration
   (strategies, volume curves) is the AOSP phone example shipped in the APEX; a
@@ -101,6 +106,7 @@ starts.
 | `wait_for_cards_ms`       | int    | `0`     | Maximum time in milliseconds to wait for the cards listed in `cards` to appear before proceeding (0 = no wait, max 60000). Only effective when `cards` is set. |
 | `primary_card`            | string | *(auto)* | Card that provides "Speaker" and "Built-In Mic". Auto: first card with an analog output. |
 | `include_usb_cards`       | bool   | `false` | Treat USB cards present at boot as static cards instead of leaving them to the framework's USB handling. |
+| `null_mic`                | bool   | `false` | Expose a silent built-in mic when no capture path exists (bring-up only). Without it, no built-in mic is declared unless a capture path is found. |
 | `ucm.enabled`             | bool   | `true`  | Use UCM profiles when available. |
 | `ucm.verb`                | string | `HiFi`  | UCM verb to select (falls back to the first verb of the profile). |
 | `mixer.init`              | bool   | `true`  | For cards *without* a UCM profile and for USB cards: unmute and set default volumes at start-up. |
@@ -128,7 +134,7 @@ Android sees it:
 | Speaker      | `OUT_SPEAKER`                | attached, *default* | UCM "Speaker", else first analog playback PCM of the primary card |
 | Earpiece     | `OUT_SPEAKER_EARPIECE`       | attached            | UCM "Earpiece" / "Handset" |
 | Headphones   | `OUT_HEADPHONE` / analog     | external template   | UCM "Headphones" |
-| Headset      | `OUT_HEADSET` / analog       | external template   | UCM "Headset" |
+| Headset      | `OUT_HEADSET` / analog       | external template   | UCM "Headset" playback, or "Headphones" playback when a headset mic is present on the card |
 | Line Out     | `OUT_DEVICE` / analog        | external template   | UCM "Line", second analog PCM |
 | HDMI         | `OUT_DEVICE` / hdmi          | external template   | UCM "HDMI*", PCMs named HDMI |
 | SPDIF        | `OUT_DEVICE` / spdif         | external template   | UCM "SPDIF*", PCMs named IEC958 |
@@ -144,21 +150,37 @@ Rules applied on top:
   select explicitly but which never hijack the default routing.
 * The framework can connect only one external device per type, so only the
   highest priority template of each kind is kept; the others become bus ports.
-* A module must have a default output and input. When the primary card has
-  no speaker / mic, the best remaining path is promoted, primary card first,
-  then the other cards. Outputs: line out, a bus output, headphones, headset,
-  S/PDIF. Inputs: a bus input, then the headset mic. This is how a desktop
-  codec with only a line out still gets a working default output.
+  For HDMI, the template's backing head is chosen from the plugged heads at
+  connection / stream routing time (highest priority first). If jack state is
+  unavailable, priority is used as a fallback; the extra bus ports remain
+  explicitly selectable.
+* A UCM headphone playback path with a headset mic also supplies a headset
+  output template, unless the card already has a separate headset playback
+  path. Android connects the headset output and mic together for a plug with
+  a microphone, and the headphone output for a plug without one.
+* When the primary card has no speaker / mic, the best remaining path is
+  promoted, primary card first, then the other cards. Outputs: line out, a bus
+  output, headphones, headset, S/PDIF. Inputs: a bus input, then the headset
+  mic. This is how a desktop codec with only a line out still gets a working
+  default output. Promoting an external path keeps its template as well, so
+  jack events can still connect it even if it also backs the default device.
 * HDMI / DisplayPort is never promoted: neither the HDMI template nor the
   additional HDMI / DisplayPort heads, which end up as bus outputs, are
   candidates. A set top box or devkit with HDMI only therefore gets a *null*
   speaker as its default output and plays through the HDMI template once the
   framework reports the sink as connected (see "Jack detection" above).
-* Without any sound card, **null** endpoints are created so that the HAL keeps
-  answering the framework: playback is discarded, capture is silence.
+* Without any sound card, a **null** speaker keeps the HAL and audio policy
+  working: playback is discarded. No built-in mic is declared unless
+  `null_mic=true`, which exposes a null mic returning silence for bring-up.
+  Without any input endpoints, the primary input mix port is omitted; USB
+  input remains available through the USB templates, and Bluetooth input
+  through the separate Bluetooth module when enabled.
 * USB sound cards are *not* enumerated statically. They arrive through
   `connectExternalDevice()` (four USB template ports) with the ALSA card /
   device in the address, exactly like the AOSP USB module.
+* Initial port configs are provided only for attached devices. External
+  templates get configs after connection, so the framework does not reuse a
+  template config when opening a stream on the connected device.
 
 Mix ports:
 
@@ -172,7 +194,7 @@ Mix ports:
   port, the framework only uses it for streams that ask for a direct output.
 * `multichannel output` (DIRECT): routed to the outputs that accept six or
   more channels; only present when such an output exists.
-* `primary input`: routed from every input device port.
+* `primary input`: routed from every input device port; absent when there are none.
 * `usb output` / `usb input`: dynamic profiles, routed to the USB templates.
 
 The formats and sample rates of the `primary output`, `hra output`,
@@ -228,10 +250,12 @@ endpoint with its capabilities and the UCM devices currently enabled.
 * No compressed offload, no MMAP / AAudio exclusive mode.
 * Master volume and mute are reported as unsupported; the framework applies
   them in software.
-* HDMI / DisplayPort connection state is not detected by the HAL (the AIDL
+* HDMI / DisplayPort connection state is not announced by the HAL (the AIDL
   interface has no way for a HAL to announce a device). The HDMI template is
   only connected when the framework learns about the sink (see "Jack
   detection"); additional HDMI / DisplayPort heads are reachable as bus
-  ports. HDMI is never promoted to the default output, so an HDMI-only device
-  without such reporting stays on the null speaker.
+  ports. Jack state is sampled when connecting or routing the template, not
+  monitored while a stream is active; changing heads without a new patch
+  does not reroute it. HDMI is never promoted to the default output, so an
+  HDMI-only device without such reporting stays on the null speaker.
 * Cards that appear after the HAL started are not picked up (USB excepted).
