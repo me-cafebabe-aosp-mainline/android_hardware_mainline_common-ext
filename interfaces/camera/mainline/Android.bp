@@ -30,7 +30,7 @@ cc_defaults {
         "libcutils",
         "libexif",
         "libfmq",
-        "libhwdb",
+        "libhwdb_ext",
         "libjpeg",
         "liblog",
         "libsync",
